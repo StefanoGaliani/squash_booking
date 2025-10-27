@@ -1,0 +1,6 @@
+.squash/
+__pycache__/
+.env
+*.pyc
+*.pyo
+.DS_Store
