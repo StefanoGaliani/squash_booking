@@ -597,14 +597,7 @@ def delete_booking(booking_id):
     flash("Booking deleted.")
     return redirect(url_for('calendar_day', date_str=b["date"]))
 
-    # Check availability on new court
-    if not court_is_free(b["date"], new_court, parse_hhmm(b["start"]), parse_hhmm(b["end"])):
-        flash(f"Court {new_court} is not free for that time.")
-        return redirect(url_for('calendar_day', date_str=b["date"]))
-
-    db.bookings.update_one({"_id": b["_id"]}, {"$set": {"court_id": new_court}})
-    flash("Booking moved to new court.")
-    return redirect(url_for('calendar_day', date_str=b["date"]))
+    
 
 
 # ---------------------------
