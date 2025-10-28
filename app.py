@@ -313,8 +313,16 @@ def admin_dashboard():
     for r in open_requests:
         r["id_str"] = str(r["_id"])  # for edit/delete links
     courts = list(db.courts.find({}).sort("court_id"))
+    rules = list(db.availability_rules.find({}).sort("weekday", 1))
 
-    return render_template('admin.html', proposals=proposals, open_requests=open_requests, courts=courts, today=datetime.now().strftime("%Y-%m-%d"))
+    return render_template(
+        "admin.html",
+        proposals=proposals,
+        open_requests=open_requests,
+        courts=courts,
+        today=datetime.now().strftime("%Y-%m-%d"),
+        rules=rules,
+    )
 
 @app.route("/admin/logout")
 def admin_logout():

@@ -23,6 +23,39 @@ admin_tpl = """
     </form>
   </div>
 
+
+
+<div class="card" style="margin-top:1.5rem;">
+    <h4>Club Hours</h4>
+    <form method="post" action="{{ url_for('update_hours') }}">
+    <table style="width:100%; border-collapse:collapse; margin-bottom:1rem;">
+        <tr style="text-align:left; border-bottom:1px solid #ccc;">
+        <th style="padding:.5rem;">Day</th>
+        <th style="padding:.5rem;">Open?</th>
+        <th style="padding:.5rem;">Open Time</th>
+        <th style="padding:.5rem;">Close Time</th>
+        </tr>
+        {% set daynames = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"] %}
+        {% for wd, rule in enumerate(rules) %}
+        <tr style="border-bottom:1px solid #eee;">
+            <td style="padding:.5rem;">{{ daynames[wd] }}</td>
+            <td style="padding:.5rem;">
+            <input type="checkbox" name="is_open_{{ wd }}" value="1"
+                    {% if rule.is_open %}checked{% endif %}>
+            </td>
+            <td style="padding:.5rem;">
+            <input type="time" name="open_{{ wd }}" value="{{ rule.open }}">
+            </td>
+            <td style="padding:.5rem;">
+            <input type="time" name="close_{{ wd }}" value="{{ rule.close }}">
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    <button class="btn primary" type="submit">Save Club Hours</button>
+    </form>
+</div>
+
   <h4>Pending Proposals</h4>
   {% if proposals %}
     {% for p in proposals %}
