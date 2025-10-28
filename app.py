@@ -3,10 +3,9 @@ from datetime import datetime, timedelta, time
 from typing import Optional, Tuple, List
 from functools import wraps
 from bson.objectid import ObjectId
-from flask import Flask, render_template_string, request, redirect, url_for, flash,session
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_pymongo import PyMongo
 from dotenv import load_dotenv
-from jinja2 import DictLoader
 
 # ---------------------------
 # Config
@@ -21,332 +20,6 @@ mongo = PyMongo(app)
 
 db = mongo.db
 
-# ---------------------------
-# Simple HTML templates (Jinja in-strings for MVP)
-# ---------------------------
-base_tpl = """
-<!doctype html>
-<html lang=\"en\">
-<head>
-  <meta charset=\"utf-8\">
-  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
-  <title>Squash Booking MVP</title>
-  <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 2rem; }
-    header { display:flex; gap: 1rem; align-items: baseline; }
-    nav a { margin-right: 1rem; }
-    form { display: grid; gap: .75rem; max-width: 640px; }
-    input, select { padding: .5rem; }
-    .grid { display: grid; gap: .5rem; }
-    .row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; }
-    .card { border: 1px solid #ddd; border-radius: 10px; padding: 1rem; }
-    .pill { padding: .2rem .5rem; border-radius: 999px; background: #eee; }
-    .ok { background:#d1fae5 }
-    .warn { background:#fef3c7 }
-    .bad { background:#fee2e2 }
-    .muted { color:#666 }
-    .btn { display:inline-block; padding:.5rem .8rem; border-radius:8px; border:1px solid #ccc; text-decoration:none; }
-    .btn.primary { background:#111; color:white; border-color:#111 }
-    .btn.danger { background:#b91c1c; color:white; border-color:#b91c1c }
-    .btn.link { border-color:transparent; background:transparent; color:#0366d6; }
-  </style>
-</head>
-<body>
-  <header>
-    <h2>Squash Roma Booking Proto</h2>
-    <nav>
-      <a href=\"{{ url_for('home') }}\">Home</a>
-      <a href=\"{{ url_for('new_request') }}\">New Request</a>
-      <a href=\"{{ url_for('admin_dashboard') }}\">Admin</a>
-      <a href=\"{{ url_for('calendar_day') }}\">Court Bookings Calendar</a>
-      {% if session.get('is_admin') %}
-        <span class="pill ok">Admin</span>
-        <a class="btn" href="{{ url_for('admin_logout') }}">Logout</a>
-      {% else %}
-         <a class="btn" href="{{ url_for('admin_login', next=request.path) }}">Admin Login</a>
-      {% endif %}
-    </nav>
-  </header>
-  {% with messages = get_flashed_messages() %}
-    {% if messages %}
-      <ul>
-        {% for m in messages %}<li>{{ m }}</li>{% endfor %}
-      </ul>
-    {% endif %}
-  {% endwith %}
-  {% block content %}{% endblock %}
-</body>
-</html>
-"""
-
-home_tpl = """
-{% extends 'base.html' %}
-{% block content %}
-  <div style="text-align:center;margin-bottom:2rem;">
-    <img src="{{ url_for('static', filename='images/roma_squash_logo.jpeg') }}"
-         alt="Roma Squash Club Logo"
-         style="max-width:300px;border-radius:10px;box-shadow:0 0 10px rgba(0,0,0,0.2);">
-  </div>
-
-  <p>Minimal web app to collect member availability, auto-match by level and time overlap, and let Carlos approve.</p>
-
-  <div class="grid">
-    <div class="card">
-      <h3>Create a Play Request</h3>
-      <p>Members submit date, time window and level. System proposes a match automatically.</p>
-      <a class="btn primary" href="{{ url_for('new_request') }}">New Request</a>
-    </div>
-
-    <div class="card">
-      <h3>Admin</h3>
-      <p>Review pending proposals and approve/decline. See open requests. Create manual bookings.</p>
-      <a class="btn" href="{{ url_for('admin_dashboard') }}">Go to Admin</a>
-    </div>
-
-    <div class="card">
-      <h3>Calendar</h3>
-      <p>See confirmed bookings per court and change court assignments.</p>
-      <a class="btn" href="{{ url_for('calendar_day') }}">Today</a>
-    </div>
-  </div>
-{% endblock %}
-"""
-
-new_request_tpl = """
-{% extends 'base.html' %}
-{% block content %}
-  <h3>New Play Request</h3>
-  <form method=\"post\">
-    <label>Member Name <input required name=\"name\" placeholder=\"e.g., Marco Rossi\"></label>
-    <label>Level
-      <select name=\"level\" required>
-        {% for L in [1,2,3,4,5] %}
-          <option value=\"{{L}}\">Level {{L}}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <label>Date <input required type=\"date\" name=\"date\" value=\"{{ default_date }}\"></label>
-    <div class=\"row\">
-      <label>Start <input required type=\"time\" name=\"start\" value=\"18:00\"></label>
-      <label>End <input required type=\"time\" name=\"end\" value=\"20:00\"></label>
-      <label>Duration (minutes)
-        <select name=\"duration\">
-          {% for d in [45, 60] %}
-            <option value=\"{{d}}\">{{d}}</option>
-          {% endfor %}
-        </select>
-      </label>
-      <label>Notes <input name=\"notes\" placeholder=\"optional\"></label>
-    </div>
-    <button class=\"btn primary\" type=\"submit\">Submit Request</button>
-  </form>
-{% endblock %}
-"""
-
-edit_request_tpl = """
-{% extends 'base.html' %}
-{% block content %}
-  <h3>Edit Request — {{ r.name }}</h3>
-  <form method=\"post\">
-    <label>Member Name <input required name=\"name\" value=\"{{ r.name }}\"></label>
-    <label>Level
-      <select name=\"level\" required>
-        {% for L in [1,2,3,4,5] %}
-          <option value=\"{{L}}\" {% if r.level == L %}selected{% endif %}>Level {{L}}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <label>Date <input required type=\"date\" name=\"date\" value=\"{{ r.date }}\"></label>
-    <div class=\"row\">
-      <label>Start <input required type=\"time\" name=\"start\" value=\"{{ r.start }}\"></label>
-      <label>End <input required type=\"time\" name=\"end\" value=\"{{ r.end }}\"></label>
-      <label>Duration (minutes)
-        <select name=\"duration\"> 
-          {% for d in [45, 60] %}
-            <option value=\"{{d}}\" {% if r.duration == d %}selected{% endif %}>{{d}}</option>
-          {% endfor %}
-        </select>
-      </label>
-      <label>Notes <input name=\"notes\" value=\"{{ r.notes or '' }}\"></label>
-    </div>
-    <button class=\"btn primary\" type=\"submit\">Save Changes</button>
-    <a class=\"btn\" href=\"{{ url_for('admin_dashboard') }}\">Cancel</a>
-  </form>
-{% endblock %}
-"""
-
-edit_booking_tpl = """
-{% extends 'base.html' %}
-{% block content %}
-  <h3>Edit Booking</h3>
-  <form method="post">
-    <div class="row">
-      <label>Player A <input name="player_a" value="{{ b.player_a or '' }}" placeholder="Name (optional)"></label>
-      <label>Player B <input name="player_b" value="{{ b.player_b or '' }}" placeholder="Name (optional)"></label>
-      <label>Date <input required type="date" name="date" value="{{ b.date }}"></label>
-      <label>Court
-        <select name="court_id">
-          {% for c in courts %}
-            <option value="{{ c.court_id }}" {% if c.court_id == b.court_id %}selected{% endif %}>Court {{ c.court_id }}</option>
-          {% endfor %}
-        </select>
-      </label>
-    </div>
-    <div class="row">
-      <label>Start <input required type="time" name="start" value="{{ b.start }}"></label>
-      <label>End <input required type="time" name="end" value="{{ b.end }}"></label>
-      <label>Notes <input name="notes" value="{{ b.notes or '' }}" placeholder="optional"></label>
-    </div>
-    <button class="btn primary" type="submit">Save</button>
-    <a class="btn" href="{{ url_for('calendar_day', date_str=b.date) }}">Cancel</a>
-  </form>
-{% endblock %}
-"""
-
-admin_login_tpl = """
-{% extends 'base.html' %}
-{% block content %}
-  <h3>Admin Login</h3>
-  <form method="post" action="{{ url_for('admin_login', next=request.args.get('next') or request.args.get('next') ) }}">
-    <label>Password
-      <input type="password" name="password" required>
-    </label>
-    <button class="btn primary" type="submit">Login</button>
-    <a class="btn" href="{{ url_for('home') }}">Cancel</a>
-  </form>
-{% endblock %}
-"""
-
-admin_tpl = """
-{% extends 'base.html' %}
-{% block content %}
-  <h3>Admin Dashboard</h3>
-
-  <div class=\"card\">
-    <h4>Create Manual Booking</h4>
-    <form method=\"post\" action=\"{{ url_for('create_manual_booking') }}\">
-      <div class=\"row\">
-        <label>Player A <input required name=\"player_a\" placeholder=\"Name\"></label>
-        <label>Player B <input required name=\"player_b\" placeholder=\"Name\"></label>
-        <label>Date <input required type=\"date\" name=\"date\" value=\"{{ today }}\"></label>
-        <label>Court
-          <select name=\"court_id\">{% for c in courts %}<option value=\"{{ c.court_id }}\">Court {{ c.court_id }}</option>{% endfor %}</select>
-        </label>
-      </div>
-      <div class=\"row\">
-        <label>Start <input required type=\"time\" name=\"start\" value=\"18:00\"></label>
-        <label>End <input required type=\"time\" name=\"end\" value=\"19:00\"></label>
-        <label>Notes <input name=\"notes\" placeholder=\"optional\"></label>
-      </div>
-      <button class=\"btn primary\" type=\"submit\">Add Booking</button>
-    </form>
-  </div>
-
-  <h4>Pending Proposals</h4>
-  {% if proposals %}
-    {% for p in proposals %}
-      <div class=\"card\">
-        <div>
-          <b>Pair:</b> {{ p.request_a.name }} (L{{p.level_a}}) vs {{ p.request_b.name }} (L{{p.level_b}})
-          <span class=\"pill\">{{ p.date }}</span>
-          <div class=\"muted\">Suggested slot: {{ p.slot_start }} - {{ p.slot_end }} on Court {{ p.court_id }}</div>
-        </div>
-        <div style=\"margin-top:.5rem;\">
-          <a class=\"btn primary\" href=\"{{ url_for('approve_proposal', proposal_id=p.id_str) }}\">Approve</a>
-          <a class=\"btn danger\" href=\"{{ url_for('reject_proposal', proposal_id=p.id_str) }}\">Reject</a>
-        </div>
-      </div>
-    {% endfor %}
-  {% else %}
-    <p class=\"muted\">No pending proposals.</p>
-  {% endif %}
-
-  <h4 style=\"margin-top:1.5rem;\">Open Requests</h4>
-  {% if open_requests %}
-    {% for r in open_requests %}
-      <div class=\"card\">
-        <b>{{ r.name }}</b> (L{{ r.level }}) — {{ r.date }}
-        <div class=\"muted\">Available: {{ r.start }}–{{ r.end }} | {{ r.notes or '' }}</div>
-        <div style=\"margin-top:.5rem;\">
-          <a class=\"btn\" href=\"{{ url_for('edit_request', request_id=r.id_str) }}\">Edit</a>
-          <a class=\"btn danger\" href=\"{{ url_for('delete_request', request_id=r.id_str) }}\" onclick=\"return confirm('Delete this request?');\">Delete</a>
-        </div>
-      </div>
-    {% endfor %}
-  {% else %}
-    <p class=\"muted\">No open requests.</p>
-  {% endif %}
-{% endblock %}
-"""
-
-calendar_tpl = """
-{% extends 'base.html' %}
-{% block content %}
-  <h3>Calendar — {{ date }}</h3>
-
-  <form method="get" action="{{ url_for('calendar_day') }}" style="margin-bottom:1rem;">
-    <label>Go to date:
-      <input type="date" name="date" value="{{ date }}" />
-    </label>
-    <button class="btn" type="submit">Go</button>
-  </form>
-
-  <div class="grid">
-  {% for court in courts %}
-    <div class="card">
-      <h4>Court {{ court.court_id }}</h4>
-      {% set bookings = by_court.get(court.court_id, []) %}
-      {% if bookings %}
-        {% for b in bookings %}
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;">
-            <div>
-              <b>{{ b.start }}–{{ b.end }}</b>
-              <div class="muted">{{ b.player_a }} vs {{ b.player_b }}</div>
-            </div>
-
-            {% if session.get('is_admin') %}
-            <div style="display:flex;gap:.5rem;align-items:center;">
-              <a class="btn" href="{{ url_for('edit_booking', booking_id=b.id_str) }}">Edit</a>
-
-              <form method="post" action="{{ url_for('change_booking_court', booking_id=b.id_str) }}">
-                <select name="court_id">
-                  {% for c2 in courts %}
-                    <option value="{{ c2.court_id }}" {% if c2.court_id == b.court_id %}selected{% endif %}>
-                      Court {{ c2.court_id }}
-                    </option>
-                  {% endfor %}
-                </select>
-                <button class="btn" type="submit">Move</button>
-              </form>
-
-              <form method="post" action="{{ url_for('delete_booking', booking_id=b.id_str) }}"
-                    onsubmit="return confirm('Delete this booking?');">
-                <button class="btn danger" type="submit">Delete</button>
-              </form>
-            </div>
-            {% endif %}
-          </div>
-        {% endfor %}
-      {% else %}
-        <div class="muted">No bookings</div>
-      {% endif %}
-    </div>
-  {% endfor %}
-  </div>
-{% endblock %}
-"""
-
-# Register templates in-memory (Flask 3.x compatible)
-app.jinja_loader = DictLoader({
-    'base.html': base_tpl,
-    'home.html': home_tpl,
-    'new_request.html': new_request_tpl,
-    'edit_request.html': edit_request_tpl,
-    'admin.html': admin_tpl,
-    'calendar.html': calendar_tpl,
-    'edit_booking.html': edit_booking_tpl,   # <-- add this
-    'admin_login.html': admin_login_tpl,  # <-- add this
-})
 
 # ---------------------------
 # Utilities
@@ -547,7 +220,7 @@ def try_autopair(new_request_id: ObjectId):
 @app.route("/")
 def home():
     seed_courts_if_needed()
-    return render_template_string(home_tpl)
+    return render_template('home.html')
 
 
 @app.route("/member/request", methods=["GET", "POST"])
@@ -595,7 +268,7 @@ def new_request():
         flash("Request submitted. If a compatible opponent is found, Carlos will review the proposal.")
         return redirect(url_for('home'))
 
-    return render_template_string(new_request_tpl, default_date=datetime.now().strftime("%Y-%m-%d"))
+    return render_template('new_request.html', default_date=datetime.now().strftime("%Y-%m-%d"))
 
 
 # -------- Minimal admin guard --------
@@ -618,7 +291,7 @@ def admin_login():
             flash("Logged in as admin.")
             return redirect(request.args.get("next") or url_for("admin_dashboard"))
         flash("Incorrect password.")
-    return render_template_string(admin_login_tpl)
+    return render_template('admin_login.html')
 
 
 
@@ -641,7 +314,7 @@ def admin_dashboard():
         r["id_str"] = str(r["_id"])  # for edit/delete links
     courts = list(db.courts.find({}).sort("court_id"))
 
-    return render_template_string(admin_tpl, proposals=proposals, open_requests=open_requests, courts=courts, today=datetime.now().strftime("%Y-%m-%d"))
+    return render_template('admin.html', proposals=proposals, open_requests=open_requests, courts=courts, today=datetime.now().strftime("%Y-%m-%d"))
 
 @app.route("/admin/logout")
 def admin_logout():
@@ -725,7 +398,7 @@ def edit_request(request_id):
         return redirect(url_for('admin_dashboard'))
 
     # GET
-    return render_template_string(edit_request_tpl, r=r)
+    return render_template('edit_request.html', r=r)
 
 
 @app.route("/admin/requests/<request_id>/delete")
@@ -828,7 +501,7 @@ def calendar_day(date_str: Optional[str] = None):
         }
         by_court.setdefault(b["court_id"], []).append(entry)
 
-    return render_template_string(calendar_tpl, date=date_str, courts=courts, by_court=by_court)
+    return render_template('calendar.html', date=date_str, courts=courts, by_court=by_court)
 
 
 @app.route("/admin/bookings/<booking_id>/edit", methods=["GET", "POST"])
@@ -883,8 +556,7 @@ def edit_booking(booking_id):
 
     # GET → render form
     courts = list(db.courts.find({}).sort("court_id"))
-    return render_template_string(edit_booking_tpl, b=b, courts=courts)
-
+    return render_template('edit_booking.html', b=b, courts=courts)
 
 
 @app.route("/admin/bookings/<booking_id>/change_court", methods=["POST"])

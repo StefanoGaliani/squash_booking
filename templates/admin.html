@@ -1,0 +1,61 @@
+admin_tpl = """
+{% extends 'base.html' %}
+{% block content %}
+  <h3>Admin Dashboard</h3>
+
+  <div class=\"card\">
+    <h4>Create Manual Booking</h4>
+    <form method=\"post\" action=\"{{ url_for('create_manual_booking') }}\">
+      <div class=\"row\">
+        <label>Player A <input required name=\"player_a\" placeholder=\"Name\"></label>
+        <label>Player B <input required name=\"player_b\" placeholder=\"Name\"></label>
+        <label>Date <input required type=\"date\" name=\"date\" value=\"{{ today }}\"></label>
+        <label>Court
+          <select name=\"court_id\">{% for c in courts %}<option value=\"{{ c.court_id }}\">Court {{ c.court_id }}</option>{% endfor %}</select>
+        </label>
+      </div>
+      <div class=\"row\">
+        <label>Start <input required type=\"time\" name=\"start\" value=\"18:00\"></label>
+        <label>End <input required type=\"time\" name=\"end\" value=\"19:00\"></label>
+        <label>Notes <input name=\"notes\" placeholder=\"optional\"></label>
+      </div>
+      <button class=\"btn primary\" type=\"submit\">Add Booking</button>
+    </form>
+  </div>
+
+  <h4>Pending Proposals</h4>
+  {% if proposals %}
+    {% for p in proposals %}
+      <div class=\"card\">
+        <div>
+          <b>Pair:</b> {{ p.request_a.name }} (L{{p.level_a}}) vs {{ p.request_b.name }} (L{{p.level_b}})
+          <span class=\"pill\">{{ p.date }}</span>
+          <div class=\"muted\">Suggested slot: {{ p.slot_start }} - {{ p.slot_end }} on Court {{ p.court_id }}</div>
+        </div>
+        <div style=\"margin-top:.5rem;\">
+          <a class=\"btn primary\" href=\"{{ url_for('approve_proposal', proposal_id=p.id_str) }}\">Approve</a>
+          <a class=\"btn danger\" href=\"{{ url_for('reject_proposal', proposal_id=p.id_str) }}\">Reject</a>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p class=\"muted\">No pending proposals.</p>
+  {% endif %}
+
+  <h4 style=\"margin-top:1.5rem;\">Open Requests</h4>
+  {% if open_requests %}
+    {% for r in open_requests %}
+      <div class=\"card\">
+        <b>{{ r.name }}</b> (L{{ r.level }}) — {{ r.date }}
+        <div class=\"muted\">Available: {{ r.start }}–{{ r.end }} | {{ r.notes or '' }}</div>
+        <div style=\"margin-top:.5rem;\">
+          <a class=\"btn\" href=\"{{ url_for('edit_request', request_id=r.id_str) }}\">Edit</a>
+          <a class=\"btn danger\" href=\"{{ url_for('delete_request', request_id=r.id_str) }}\" onclick=\"return confirm('Delete this request?');\">Delete</a>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p class=\"muted\">No open requests.</p>
+  {% endif %}
+{% endblock %}
+"""

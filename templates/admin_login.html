@@ -1,0 +1,13 @@
+admin_login_tpl = """
+{% extends 'base.html' %}
+{% block content %}
+  <h3>Admin Login</h3>
+  <form method="post" action="{{ url_for('admin_login', next=request.args.get('next') or request.args.get('next') ) }}">
+    <label>Password
+      <input type="password" name="password" required>
+    </label>
+    <button class="btn primary" type="submit">Login</button>
+    <a class="btn" href="{{ url_for('home') }}">Cancel</a>
+  </form>
+{% endblock %}
+"""

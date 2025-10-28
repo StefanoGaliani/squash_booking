@@ -1,0 +1,30 @@
+new_request_tpl = """
+{% extends 'base.html' %}
+{% block content %}
+  <h3>New Play Request</h3>
+  <form method=\"post\">
+    <label>Member Name <input required name=\"name\" placeholder=\"e.g., Marco Rossi\"></label>
+    <label>Level
+      <select name=\"level\" required>
+        {% for L in [1,2,3,4,5] %}
+          <option value=\"{{L}}\">Level {{L}}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Date <input required type=\"date\" name=\"date\" value=\"{{ default_date }}\"></label>
+    <div class=\"row\">
+      <label>Start <input required type=\"time\" name=\"start\" value=\"18:00\"></label>
+      <label>End <input required type=\"time\" name=\"end\" value=\"20:00\"></label>
+      <label>Duration (minutes)
+        <select name=\"duration\">
+          {% for d in [45, 60] %}
+            <option value=\"{{d}}\">{{d}}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Notes <input name=\"notes\" placeholder=\"optional\"></label>
+    </div>
+    <button class=\"btn primary\" type=\"submit\">Submit Request</button>
+  </form>
+{% endblock %}
+"""

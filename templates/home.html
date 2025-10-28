@@ -1,0 +1,32 @@
+home_tpl = """
+{% extends 'base.html' %}
+{% block content %}
+  <div style="text-align:center;margin-bottom:2rem;">
+    <img src="{{ url_for('static', filename='images/roma_squash_logo.jpeg') }}"
+         alt="Roma Squash Club Logo"
+         style="max-width:300px;border-radius:10px;box-shadow:0 0 10px rgba(0,0,0,0.2);">
+  </div>
+
+  <p>Minimal web app to collect member availability, auto-match by level and time overlap, and let Carlos approve.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Create a Play Request</h3>
+      <p>Members submit date, time window and level. System proposes a match automatically.</p>
+      <a class="btn primary" href="{{ url_for('new_request') }}">New Request</a>
+    </div>
+
+    <div class="card">
+      <h3>Admin</h3>
+      <p>Review pending proposals and approve/decline. See open requests. Create manual bookings.</p>
+      <a class="btn" href="{{ url_for('admin_dashboard') }}">Go to Admin</a>
+    </div>
+
+    <div class="card">
+      <h3>Calendar</h3>
+      <p>See confirmed bookings per court and change court assignments.</p>
+      <a class="btn" href="{{ url_for('calendar_day') }}">Today</a>
+    </div>
+  </div>
+{% endblock %}
+"""

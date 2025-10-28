@@ -1,0 +1,27 @@
+edit_booking_tpl = """
+{% extends 'base.html' %}
+{% block content %}
+  <h3>Edit Booking</h3>
+  <form method="post">
+    <div class="row">
+      <label>Player A <input name="player_a" value="{{ b.player_a or '' }}" placeholder="Name (optional)"></label>
+      <label>Player B <input name="player_b" value="{{ b.player_b or '' }}" placeholder="Name (optional)"></label>
+      <label>Date <input required type="date" name="date" value="{{ b.date }}"></label>
+      <label>Court
+        <select name="court_id">
+          {% for c in courts %}
+            <option value="{{ c.court_id }}" {% if c.court_id == b.court_id %}selected{% endif %}>Court {{ c.court_id }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+    <div class="row">
+      <label>Start <input required type="time" name="start" value="{{ b.start }}"></label>
+      <label>End <input required type="time" name="end" value="{{ b.end }}"></label>
+      <label>Notes <input name="notes" value="{{ b.notes or '' }}" placeholder="optional"></label>
+    </div>
+    <button class="btn primary" type="submit">Save</button>
+    <a class="btn" href="{{ url_for('calendar_day', date_str=b.date) }}">Cancel</a>
+  </form>
+{% endblock %}
+"""

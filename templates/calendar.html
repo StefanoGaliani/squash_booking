@@ -1,0 +1,56 @@
+calendar_tpl = """
+{% extends 'base.html' %}
+{% block content %}
+  <h3>Calendar — {{ date }}</h3>
+
+  <form method="get" action="{{ url_for('calendar_day') }}" style="margin-bottom:1rem;">
+    <label>Go to date:
+      <input type="date" name="date" value="{{ date }}" />
+    </label>
+    <button class="btn" type="submit">Go</button>
+  </form>
+
+  <div class="grid">
+  {% for court in courts %}
+    <div class="card">
+      <h4>Court {{ court.court_id }}</h4>
+      {% set bookings = by_court.get(court.court_id, []) %}
+      {% if bookings %}
+        {% for b in bookings %}
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;">
+            <div>
+              <b>{{ b.start }}–{{ b.end }}</b>
+              <div class="muted">{{ b.player_a }} vs {{ b.player_b }}</div>
+            </div>
+
+            {% if session.get('is_admin') %}
+            <div style="display:flex;gap:.5rem;align-items:center;">
+              <a class="btn" href="{{ url_for('edit_booking', booking_id=b.id_str) }}">Edit</a>
+
+              <form method="post" action="{{ url_for('change_booking_court', booking_id=b.id_str) }}">
+                <select name="court_id">
+                  {% for c2 in courts %}
+                    <option value="{{ c2.court_id }}" {% if c2.court_id == b.court_id %}selected{% endif %}>
+                      Court {{ c2.court_id }}
+                    </option>
+                  {% endfor %}
+                </select>
+                <button class="btn" type="submit">Move</button>
+              </form>
+
+              <form method="post" action="{{ url_for('delete_booking', booking_id=b.id_str) }}"
+                    onsubmit="return confirm('Delete this booking?');">
+                <button class="btn danger" type="submit">Delete</button>
+              </form>
+            </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="muted">No bookings</div>
+      {% endif %}
+    </div>
+  {% endfor %}
+  </div>
+{% endblock %}
+"""
