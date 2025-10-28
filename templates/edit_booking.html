@@ -1,27 +1,71 @@
-edit_booking_tpl = """
 {% extends 'base.html' %}
+{% block title %}Edit Booking • Squash Booking MVP{% endblock %}
 {% block content %}
   <h3>Edit Booking</h3>
-  <form method="post">
+
+  <form method="post" style="max-width:640px;">
     <div class="row">
-      <label>Player A <input name="player_a" value="{{ b.player_a or '' }}" placeholder="Name (optional)"></label>
-      <label>Player B <input name="player_b" value="{{ b.player_b or '' }}" placeholder="Name (optional)"></label>
-      <label>Date <input required type="date" name="date" value="{{ b.date }}"></label>
-      <label>Court
+      <label>
+        Player A
+        <input name="player_a"
+               value="{{ b.get('player_a', '') }}"
+               placeholder="Name (optional)"
+               autofocus>
+      </label>
+
+      <label>
+        Player B
+        <input name="player_b"
+               value="{{ b.get('player_b', '') }}"
+               placeholder="Name (optional)">
+      </label>
+
+      <label>
+        Date
+        <input required type="date"
+               name="date"
+               value="{{ b.get('date') }}">
+      </label>
+
+      <label>
+        Court
         <select name="court_id">
           {% for c in courts %}
-            <option value="{{ c.court_id }}" {% if c.court_id == b.court_id %}selected{% endif %}>Court {{ c.court_id }}</option>
+            <option value="{{ c.court_id }}"
+                    {% if c.court_id == b.court_id %}selected{% endif %}>
+              Court {{ c.court_id }}
+            </option>
           {% endfor %}
         </select>
       </label>
     </div>
-    <div class="row">
-      <label>Start <input required type="time" name="start" value="{{ b.start }}"></label>
-      <label>End <input required type="time" name="end" value="{{ b.end }}"></label>
-      <label>Notes <input name="notes" value="{{ b.notes or '' }}" placeholder="optional"></label>
+
+    <div class="row" style="margin-top:.5rem;">
+      <label>
+        Start
+        <input required type="time"
+               name="start"
+               value="{{ b.get('start') }}">
+      </label>
+
+      <label>
+        End
+        <input required type="time"
+               name="end"
+               value="{{ b.get('end') }}">
+      </label>
+
+      <label>
+        Notes
+        <input name="notes"
+               value="{{ b.get('notes', '') }}"
+               placeholder="optional">
+      </label>
     </div>
-    <button class="btn primary" type="submit">Save</button>
-    <a class="btn" href="{{ url_for('calendar_day', date_str=b.date) }}">Cancel</a>
+
+    <div style="margin-top:1rem; display:flex; gap:.5rem;">
+      <button class="btn primary" type="submit">Save</button>
+      <a class="btn" href="{{ url_for('calendar_day', date_str=b.date) }}">Cancel</a>
+    </div>
   </form>
 {% endblock %}
-"""

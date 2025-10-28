@@ -1,13 +1,31 @@
-admin_login_tpl = """
 {% extends 'base.html' %}
+
+{% block title %}Admin Login • Squash Booking MVP{% endblock %}
+
 {% block content %}
   <h3>Admin Login</h3>
-  <form method="post" action="{{ url_for('admin_login', next=request.args.get('next') or request.args.get('next') ) }}">
+
+  <form method="post"
+        action="{{ url_for('admin_login', next=request.args.get('next')) }}"
+        style="max-width: 420px;">
     <label>Password
-      <input type="password" name="password" required>
+      <input type="password"
+             name="password"
+             required
+             autocomplete="current-password"
+             autofocus>
     </label>
-    <button class="btn primary" type="submit">Login</button>
-    <a class="btn" href="{{ url_for('home') }}">Cancel</a>
+
+    <div style="margin-top:.75rem; display:flex; gap:.5rem;">
+      <button class="btn primary" type="submit">Login</button>
+      <a class="btn"
+         href="{{ request.args.get('next') or url_for('home') }}">
+         Cancel
+      </a>
+    </div>
+
+    <p class="muted" style="margin-top:.5rem;">
+      Tip: if login fails, check that your <code>ADMIN_PASS</code> env var is set on Render.
+    </p>
   </form>
 {% endblock %}
-"""

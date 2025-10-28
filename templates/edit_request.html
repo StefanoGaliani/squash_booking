@@ -1,31 +1,74 @@
-edit_request_tpl = """
 {% extends 'base.html' %}
+{% block title %}Edit Request • Squash Booking MVP{% endblock %}
 {% block content %}
   <h3>Edit Request — {{ r.name }}</h3>
-  <form method=\"post\">
-    <label>Member Name <input required name=\"name\" value=\"{{ r.name }}\"></label>
-    <label>Level
-      <select name=\"level\" required>
-        {% for L in [1,2,3,4,5] %}
-          <option value=\"{{L}}\" {% if r.level == L %}selected{% endif %}>Level {{L}}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <label>Date <input required type=\"date\" name=\"date\" value=\"{{ r.date }}\"></label>
-    <div class=\"row\">
-      <label>Start <input required type=\"time\" name=\"start\" value=\"{{ r.start }}\"></label>
-      <label>End <input required type=\"time\" name=\"end\" value=\"{{ r.end }}\"></label>
-      <label>Duration (minutes)
-        <select name=\"duration\"> 
-          {% for d in [45, 60] %}
-            <option value=\"{{d}}\" {% if r.duration == d %}selected{% endif %}>{{d}}</option>
+
+  <form method="post" style="max-width:640px;">
+    <div class="grid" style="gap:1rem;">
+      <label>
+        Member Name
+        <input required
+               name="name"
+               value="{{ r.get('name', '') }}"
+               autofocus>
+      </label>
+
+      <label>
+        Level
+        <select name="level" required>
+          {% for L in [1,2,3,4,5] %}
+            <option value="{{ L }}" {% if r.level == L %}selected{% endif %}>
+              Level {{ L }}
+            </option>
           {% endfor %}
         </select>
       </label>
-      <label>Notes <input name=\"notes\" value=\"{{ r.notes or '' }}\"></label>
+
+      <label>
+        Date
+        <input required type="date"
+               name="date"
+               value="{{ r.get('date') }}">
+      </label>
+
+      <div class="row">
+        <label>
+          Start
+          <input required type="time"
+                 name="start"
+                 value="{{ r.get('start') }}">
+        </label>
+
+        <label>
+          End
+          <input required type="time"
+                 name="end"
+                 value="{{ r.get('end') }}">
+        </label>
+
+        <label>
+          Duration (minutes)
+          <select name="duration">
+            {% for d in [45, 60] %}
+              <option value="{{ d }}" {% if r.duration == d %}selected{% endif %}>
+                {{ d }}
+              </option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <label>
+          Notes
+          <input name="notes"
+                 value="{{ r.get('notes', '') }}"
+                 placeholder="optional">
+        </label>
+      </div>
     </div>
-    <button class=\"btn primary\" type=\"submit\">Save Changes</button>
-    <a class=\"btn\" href=\"{{ url_for('admin_dashboard') }}\">Cancel</a>
+
+    <div style="margin-top:1rem; display:flex; gap:.5rem;">
+      <button class="btn primary" type="submit">Save Changes</button>
+      <a class="btn" href="{{ url_for('admin_dashboard') }}">Cancel</a>
+    </div>
   </form>
 {% endblock %}
-"""

@@ -1,94 +1,130 @@
-admin_tpl = """
 {% extends 'base.html' %}
+{% block title %}Admin • Squash Booking MVP{% endblock %}
 {% block content %}
   <h3>Admin Dashboard</h3>
 
-  <div class=\"card\">
+  <!-- Create Manual Booking -->
+  <div class="card">
     <h4>Create Manual Booking</h4>
-    <form method=\"post\" action=\"{{ url_for('create_manual_booking') }}\">
-      <div class=\"row\">
-        <label>Player A <input required name=\"player_a\" placeholder=\"Name\"></label>
-        <label>Player B <input required name=\"player_b\" placeholder=\"Name\"></label>
-        <label>Date <input required type=\"date\" name=\"date\" value=\"{{ today }}\"></label>
+    <form method="post" action="{{ url_for('create_manual_booking') }}">
+      <div class="row">
+        <label>Player A <input required name="player_a" placeholder="Name"></label>
+        <label>Player B <input required name="player_b" placeholder="Name"></label>
+        <label>Date <input required type="date" name="date" value="{{ today }}"></label>
         <label>Court
-          <select name=\"court_id\">{% for c in courts %}<option value=\"{{ c.court_id }}\">Court {{ c.court_id }}</option>{% endfor %}</select>
+          <select name="court_id">
+            {% for c in courts %}
+              <option value="{{ c.court_id }}">Court {{ c.court_id }}</option>
+            {% endfor %}
+          </select>
         </label>
       </div>
-      <div class=\"row\">
-        <label>Start <input required type=\"time\" name=\"start\" value=\"18:00\"></label>
-        <label>End <input required type=\"time\" name=\"end\" value=\"19:00\"></label>
-        <label>Notes <input name=\"notes\" placeholder=\"optional\"></label>
+      <div class="row">
+        <label>Start <input required type="time" name="start" value="18:00"></label>
+        <label>End <input required type="time" name="end" value="19:00"></label>
+        <label>Notes <input name="notes" placeholder="optional"></label>
       </div>
-      <button class=\"btn primary\" type=\"submit\">Add Booking</button>
+      <button class="btn primary" type="submit">Add Booking</button>
     </form>
   </div>
 
-
-
-<div class="card" style="margin-top:1.5rem;">
+  <!-- Club Hours -->
+  <div class="card" style="margin-top:1.5rem;">
     <h4>Club Hours</h4>
     <form method="post" action="{{ url_for('update_hours') }}">
-    <table style="width:100%; border-collapse:collapse; margin-bottom:1rem;">
+      <table style="width:100%; border-collapse:collapse; margin-bottom:1rem;">
         <tr style="text-align:left; border-bottom:1px solid #ccc;">
-        <th style="padding:.5rem;">Day</th>
-        <th style="padding:.5rem;">Open?</th>
-        <th style="padding:.5rem;">Open Time</th>
-        <th style="padding:.5rem;">Close Time</th>
+          <th style="padding:.5rem;">Day</th>
+          <th style="padding:.5rem;">Open?</th>
+          <th style="padding:.5rem;">Open Time</th>
+          <th style="padding:.5rem;">Close Time</th>
         </tr>
+
         {% set daynames = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"] %}
-        {% for wd, rule in enumerate(rules) %}
-        <tr style="border-bottom:1px solid #eee;">
+        {% for rule in rules %}
+          {% set wd = rule.weekday %}
+          <tr style="border-bottom:1px solid #eee;">
             <td style="padding:.5rem;">{{ daynames[wd] }}</td>
             <td style="padding:.5rem;">
-            <input type="checkbox" name="is_open_{{ wd }}" value="1"
-                    {% if rule.is_open %}checked{% endif %}>
+              <input type="checkbox"
+                     class="is-open-toggle"
+                     data-wd="{{ wd }}"
+                     name="is_open_{{ wd }}"
+                     value="1"
+                     {% if rule.is_open %}checked{% endif %}>
             </td>
             <td style="padding:.5rem;">
-            <input type="time" name="open_{{ wd }}" value="{{ rule.open }}">
+              <input type="time" name="open_{{ wd }}" value="{{ rule.open }}">
             </td>
             <td style="padding:.5rem;">
-            <input type="time" name="close_{{ wd }}" value="{{ rule.close }}">
+              <input type="time" name="close_{{ wd }}" value="{{ rule.close }}">
             </td>
-        </tr>
+          </tr>
         {% endfor %}
-    </table>
-    <button class="btn primary" type="submit">Save Club Hours</button>
+      </table>
+      <button class="btn primary" type="submit">Save Club Hours</button>
     </form>
-</div>
+    <script>
+      // Disable open/close inputs if "Open?" is unchecked
+      (function () {
+        const toggles = document.querySelectorAll('.is-open-toggle');
+        function syncRow(wd) {
+          const open = document.querySelector(`input[name="open_${wd}"]`);
+          const close = document.querySelector(`input[name="close_${wd}"]`);
+          const isOn = document.querySelector(`input[name="is_open_${wd}"]`).checked;
+          if (open && close) { open.disabled = !isOn; close.disabled = !isOn; }
+        }
+        toggles.forEach(t => {
+          syncRow(t.dataset.wd);
+          t.addEventListener('change', () => syncRow(t.dataset.wd));
+        });
+      })();
+    </script>
+  </div>
 
+  <!-- Pending Proposals -->
   <h4>Pending Proposals</h4>
   {% if proposals %}
     {% for p in proposals %}
-      <div class=\"card\">
+      <div class="card">
         <div>
-          <b>Pair:</b> {{ p.request_a.name }} (L{{p.level_a}}) vs {{ p.request_b.name }} (L{{p.level_b}})
-          <span class=\"pill\">{{ p.date }}</span>
-          <div class=\"muted\">Suggested slot: {{ p.slot_start }} - {{ p.slot_end }} on Court {{ p.court_id }}</div>
+          <b>Pair:</b>
+          {{ p.request_a.name if p.request_a else 'Player A' }}
+          (L{{ p.level_a }})
+          vs
+          {{ p.request_b.name if p.request_b else 'Player B' }}
+          (L{{ p.level_b }})
+          <span class="pill">{{ p.date }}</span>
+          <div class="muted">
+            Suggested slot: {{ p.slot_start }} – {{ p.slot_end }} on Court {{ p.court_id }}
+          </div>
         </div>
-        <div style=\"margin-top:.5rem;\">
-          <a class=\"btn primary\" href=\"{{ url_for('approve_proposal', proposal_id=p.id_str) }}\">Approve</a>
-          <a class=\"btn danger\" href=\"{{ url_for('reject_proposal', proposal_id=p.id_str) }}\">Reject</a>
+        <div style="margin-top:.5rem;">
+          <a class="btn primary" href="{{ url_for('approve_proposal', proposal_id=p.id_str) }}">Approve</a>
+          <a class="btn danger" href="{{ url_for('reject_proposal', proposal_id=p.id_str) }}">Reject</a>
         </div>
       </div>
     {% endfor %}
   {% else %}
-    <p class=\"muted\">No pending proposals.</p>
+    <p class="muted">No pending proposals.</p>
   {% endif %}
 
-  <h4 style=\"margin-top:1.5rem;\">Open Requests</h4>
+  <!-- Open Requests -->
+  <h4 style="margin-top:1.5rem;">Open Requests</h4>
   {% if open_requests %}
     {% for r in open_requests %}
-      <div class=\"card\">
+      <div class="card">
         <b>{{ r.name }}</b> (L{{ r.level }}) — {{ r.date }}
-        <div class=\"muted\">Available: {{ r.start }}–{{ r.end }} | {{ r.notes or '' }}</div>
-        <div style=\"margin-top:.5rem;\">
-          <a class=\"btn\" href=\"{{ url_for('edit_request', request_id=r.id_str) }}\">Edit</a>
-          <a class=\"btn danger\" href=\"{{ url_for('delete_request', request_id=r.id_str) }}\" onclick=\"return confirm('Delete this request?');\">Delete</a>
+        <div class="muted">Available: {{ r.start }}–{{ r.end }}{% if r.notes %} | {{ r.notes }}{% endif %}</div>
+        <div style="margin-top:.5rem;">
+          <a class="btn" href="{{ url_for('edit_request', request_id=r.id_str) }}">Edit</a>
+          <a class="btn danger"
+             href="{{ url_for('delete_request', request_id=r.id_str) }}"
+             onclick="return confirm('Delete this request?');">Delete</a>
         </div>
       </div>
     {% endfor %}
   {% else %}
-    <p class=\"muted\">No open requests.</p>
+    <p class="muted">No open requests.</p>
   {% endif %}
 {% endblock %}
-"""

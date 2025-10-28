@@ -1,56 +1,74 @@
-calendar_tpl = """
 {% extends 'base.html' %}
+{% block title %}Calendar • {{ date }} • Squash Booking MVP{% endblock %}
 {% block content %}
   <h3>Calendar — {{ date }}</h3>
 
-  <form method="get" action="{{ url_for('calendar_day') }}" style="margin-bottom:1rem;">
+  <form method="get" action="{{ url_for('calendar_day') }}" style="margin-bottom:1rem; display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
     <label>Go to date:
       <input type="date" name="date" value="{{ date }}" />
     </label>
     <button class="btn" type="submit">Go</button>
+    <button class="btn" type="button" id="prevBtn">Prev</button>
+    <button class="btn" type="button" id="todayBtn">Today</button>
+    <button class="btn" type="button" id="nextBtn">Next</button>
   </form>
 
-  <div class="grid">
-  {% for court in courts %}
-    <div class="card">
-      <h4>Court {{ court.court_id }}</h4>
-      {% set bookings = by_court.get(court.court_id, []) %}
-      {% if bookings %}
-        {% for b in bookings %}
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;">
-            <div>
-              <b>{{ b.start }}–{{ b.end }}</b>
-              <div class="muted">{{ b.player_a }} vs {{ b.player_b }}</div>
+  <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+    {% for court in courts %}
+      <div class="card">
+        <h4 style="margin-top:0;">Court {{ court.court_id }}</h4>
+        {% set bookings = by_court.get(court.court_id, []) %}
+        {% if bookings %}
+          {% for b in bookings %}
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem; padding:.35rem 0; border-top:1px solid #eee;">
+              <div>
+                <b>{{ b.start }}–{{ b.end }}</b>
+                <div class="muted">{{ b.player_a }} vs {{ b.player_b }}</div>
+              </div>
+
+              {% if session.get('is_admin') %}
+                <div style="display:flex;gap:.4rem;align-items:center;">
+                  <a class="btn" href="{{ url_for('edit_booking', booking_id=b.id_str) }}">Edit</a>
+
+                  <form method="post" action="{{ url_for('change_booking_court', booking_id=b.id_str) }}" style="display:flex; gap:.3rem; align-items:center;">
+                    <select name="court_id">
+                      {% for c2 in courts %}
+                        <option value="{{ c2.court_id }}" {% if c2.court_id == b.court_id %}selected{% endif %}>
+                          Court {{ c2.court_id }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                    <button class="btn" type="submit">Move</button>
+                  </form>
+
+                  <form method="post" action="{{ url_for('delete_booking', booking_id=b.id_str) }}"
+                        onsubmit="return confirm('Delete this booking?');">
+                    <button class="btn danger" type="submit">Delete</button>
+                  </form>
+                </div>
+              {% endif %}
             </div>
-
-            {% if session.get('is_admin') %}
-            <div style="display:flex;gap:.5rem;align-items:center;">
-              <a class="btn" href="{{ url_for('edit_booking', booking_id=b.id_str) }}">Edit</a>
-
-              <form method="post" action="{{ url_for('change_booking_court', booking_id=b.id_str) }}">
-                <select name="court_id">
-                  {% for c2 in courts %}
-                    <option value="{{ c2.court_id }}" {% if c2.court_id == b.court_id %}selected{% endif %}>
-                      Court {{ c2.court_id }}
-                    </option>
-                  {% endfor %}
-                </select>
-                <button class="btn" type="submit">Move</button>
-              </form>
-
-              <form method="post" action="{{ url_for('delete_booking', booking_id=b.id_str) }}"
-                    onsubmit="return confirm('Delete this booking?');">
-                <button class="btn danger" type="submit">Delete</button>
-              </form>
-            </div>
-            {% endif %}
-          </div>
-        {% endfor %}
-      {% else %}
-        <div class="muted">No bookings</div>
-      {% endif %}
-    </div>
-  {% endfor %}
+          {% endfor %}
+        {% else %}
+          <div class="muted">No bookings</div>
+        {% endif %}
+      </div>
+    {% endfor %}
   </div>
+
+  <script>
+    (function () {
+      const form = document.querySelector('form[action="{{ url_for('calendar_day') }}"]');
+      const input = form.querySelector('input[name="date"]');
+      function setDay(delta) {
+        const d = new Date(input.value || new Date().toISOString().slice(0,10));
+        d.setDate(d.getDate() + delta);
+        input.value = d.toISOString().slice(0,10);
+        form.submit();
+      }
+      document.getElementById('prevBtn').addEventListener('click', () => setDay(-1));
+      document.getElementById('todayBtn').addEventListener('click', () => { input.value = new Date().toISOString().slice(0,10); form.submit(); });
+      document.getElementById('nextBtn').addEventListener('click', () => setDay(1));
+    })();
+  </script>
 {% endblock %}
-"""
